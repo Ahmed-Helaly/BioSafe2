@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bioSafe | My Health Record</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+    --primary:#1b3a5c; --primary-light:#2a5580;
+    --secondary:#1a9e8f; --secondary-light:#22c4b2;
+    --bg:#f6f9fc; --bg-alt:#eef4f8; --white:#ffffff;
+    --text:#1e293b; --text-light:#64748b; --border:#dbe4ee;
+    --shadow-sm:0 2px 8px rgba(27,58,92,.06);
+    --shadow-md:0 8px 30px rgba(27,58,92,.10);
+    --shadow-lg:0 20px 60px rgba(27,58,92,.16);
+    --radius:14px; --radius-lg:22px;
+    --transition:.3s cubic-bezier(.4,0,.2,1);
+    --note:#f59e0b;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;
+    display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;
+}
+a{text-decoration:none;color:inherit;}
+img{max-width:100%;height:auto;display:block;}
+
+header{
+    position:sticky;top:0;z-index:100;
+    background:rgba(255,255,255,.82);backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+}
+.nav-container{
+    max-width:1200px;margin:0 auto;padding:.7rem 2rem;
+    display:flex;align-items:center;justify-content:space-between;
+}
+.logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.35rem;color:var(--primary);letter-spacing:-.02em;}
+.logo img{width:38px;height:38px;object-fit:contain;}
+.logo span{
+    background:linear-gradient(135deg,var(--primary) 0%,var(--primary) 48%,var(--secondary) 52%,var(--secondary) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-links{display:flex;align-items:center;gap:1rem;}
+.btn-login-nav{
+    display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1.4rem;
+    font-size:.9rem;font-weight:700;font-family:inherit;color:var(--white);
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    border-radius:50px;transition:all var(--transition);
+    box-shadow:0 4px 14px rgba(26,158,143,.25);border:none;cursor:pointer;
+}
+.btn-login-nav:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(26,158,143,.35);}
+
+.page-wrap{max-width:1000px;margin:2rem auto 4rem;padding:0 1.5rem;width:100%;}
+.login-card{
+    background:var(--white);border-radius:var(--radius-lg);padding:2.5rem 2rem;
+    box-shadow:var(--shadow-lg);max-width:460px;margin:3rem auto;border:1px solid var(--border);
+}
+.dashboard{display:none;}
+.dashboard.active{display:block;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+.profile-card{
+    background:linear-gradient(135deg,var(--secondary),var(--primary));
+    color:#fff;border-radius:var(--radius-lg);padding:2rem;margin-bottom:2rem;
+    box-shadow:var(--shadow-md);
+}
+.profile-card h2{font-size:1.6rem;margin-bottom:.3rem;}
+.profile-card .meta{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1rem;font-size:.9rem;opacity:.92;}
+
+.card{background:var(--white);border-radius:var(--radius-lg);padding:2rem;box-shadow:var(--shadow-md);border:1px solid var(--border);margin-bottom:1.5rem;}
+.card h3{color:var(--primary);font-weight:800;margin-bottom:1rem;font-size:1.2rem;}
+
+.input-group{margin-bottom:1.2rem;}
+.input-group label{display:block;font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:.4rem;letter-spacing:.02em;}
+.input-group input, .input-group select, .input-group textarea{
+    width:100%;padding:.75rem 1rem;font-size:.92rem;font-family:inherit;color:var(--text);
+    background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);
+    outline:none;transition:all var(--transition);
+}
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus{border-color:var(--secondary);background:#fff;box-shadow:0 0 0 4px rgba(26,158,143,.12);}
+
+.form-msg{margin-top:1rem;padding:.8rem 1rem;border-radius:var(--radius);font-weight:600;display:none;}
+.form-msg.ok{display:block;background:#dcfce7;color:#166534;}
+.form-msg.err{display:block;background:#fee2e2;color:#991b1b;}
+
+.logout-btn{background:var(--bg-alt);color:var(--primary);border:1px solid var(--border);padding:.5rem 1.1rem;border-radius:50px;font-family:inherit;font-weight:700;cursor:pointer;font-size:.85rem;display:inline-flex;align-items:center;gap:.4rem;}
+.logout-btn:hover{background:#fee2e2;color:#991b1b;border-color:#fecaca;}
+
+.btn-submit{
+    width:100%;padding:.85rem 1.5rem;font-size:1rem;font-weight:700;font-family:inherit;
+    color:var(--white);background:linear-gradient(135deg,var(--primary),var(--secondary));
+    border:none;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:.55rem;transition:all var(--transition);margin-top:.5rem;
+}
+.btn-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(26,158,143,.35);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+
+.btn-scan{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    padding:.7rem 1.4rem;font-family:inherit;font-weight:700;font-size:.9rem;
+    color:#fff;border:none;border-radius:var(--radius);cursor:pointer;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));transition:all .3s;
+}
+.btn-scan:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(26,158,143,.3);}
+.btn-scan:disabled{opacity:.6;cursor:not-allowed;}
+
+.divider{display:flex;align-items:center;gap:1rem;margin:1.6rem 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{font-size:.75rem;font-weight:600;color:var(--text-light);white-space:nowrap;letter-spacing:.02em;}
+
+.empty-hint{color:var(--text-light);font-size:.88rem;font-style:italic;padding:.4rem 0;}
+
+.info-row{
+    display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+    padding:.65rem .9rem;border-radius:10px;margin-bottom:.5rem;
+    background:var(--bg);border-left:3px solid var(--secondary);
+}
+.info-row .info-label{font-size:.86rem;font-weight:700;color:var(--primary);min-width:130px;}
+.info-row .info-value{font-size:.92rem;flex:1;color:var(--text);}
+.info-row .info-value.muted{color:var(--text-light);font-style:italic;}
+
+.notes-area{display:flex;flex-direction:column;gap:.6rem;}
+.note-item{
+    background:#fffbeb;border:1px solid #fde68a;border-left:4px solid var(--note);
+    border-radius:var(--radius);padding:.7rem 1rem;font-size:.9rem;
+}
+.note-item .note-text{color:var(--text);}
+.note-item .note-meta{font-size:.75rem;color:var(--text-light);margin-top:.35rem;}
+.note-item .note-meta i{margin-right:.3rem;}
+
+.record-card{background:var(--white);border-radius:var(--radius);padding:1.1rem 1.4rem;box-shadow:var(--shadow-sm);border:1px solid var(--border);margin-bottom:.8rem;border-left:4px solid var(--secondary);}
+.record-card .record-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;}
+.record-card .diagnosis{font-weight:800;color:var(--primary);}
+.record-card .date{font-size:.82rem;color:var(--text-light);background:var(--bg-alt);padding:.2rem .7rem;border-radius:50px;}
+.record-card .field{font-size:.88rem;margin:.3rem 0;}
+.record-card .field strong{color:var(--primary);}
+
+.pin-gate{
+    background:#f8fafc;border:2px dashed var(--secondary);
+    border-radius:var(--radius-lg);padding:2.5rem 1.5rem;text-align:center;
+    margin:1.2rem 0;
+}
+.pin-gate h3{color:var(--primary);margin-bottom:.6rem;font-size:1.2rem;}
+.pin-gate p{color:var(--text-light);margin-bottom:1.3rem;font-size:.9rem;}
+.btn-pin{
+    background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:none;
+    padding:.8rem 2rem;font-size:1rem;font-weight:700;border-radius:var(--radius);
+    cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:.5rem;
+}
+.btn-pin:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(26,158,143,.3);}
+
+/* ===== FORCED BIOMETRIC OVERLAY ===== */
+.bio-overlay{
+    position:fixed;inset:0;z-index:9999;
+    background:rgba(15,23,42,.85);backdrop-filter:blur(8px);
+    display:none;align-items:center;justify-content:center;padding:1rem;
+}
+.bio-overlay.active{display:flex;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.bio-modal{
+    background:#fff;border-radius:var(--radius-lg);padding:2.2rem 1.8rem;
+    max-width:440px;width:100%;box-shadow:var(--shadow-lg);text-align:center;
+    border:2px solid var(--secondary);
+}
+.bio-modal .bio-icon{
+    width:80px;height:80px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--secondary),var(--primary));border-radius:50%;
+    color:#fff;font-size:2rem;animation:pulse 1.8s infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,158,143,.4);}50%{box-shadow:0 0 0 14px rgba(26,158,143,0);}}
+.bio-modal h3{color:var(--primary);font-size:1.25rem;font-weight:800;margin-bottom:.5rem;}
+.bio-modal p{color:var(--text-light);font-size:.9rem;margin-bottom:1.4rem;line-height:1.55;}
+.bio-modal .bio-note{
+    background:#fef3c7;border:1px solid #fde68a;border-radius:var(--radius);
+    padding:.7rem .9rem;font-size:.8rem;color:#92400e;margin-bottom:1.2rem;text-align:left;
+}
+.bio-modal .bio-note i{margin-right:.4rem;}
+.bio-modal .form-msg{margin-top:1rem;text-align:center;}
+
+.passkey-badge{
+    display:inline-flex;align-items:center;gap:.4rem;
+    background:rgba(255,255,255,.18);color:#fff;
+    border:1px solid rgba(255,255,255,.4);padding:.4rem .9rem;
+    border-radius:50px;font-size:.8rem;font-weight:700;margin-top:1rem;
+}
+.passkey-badge i{color:#86efac;}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="nav-container">
+        <a href="user.html" class="logo">
+            <img src="Icon.png" alt="bioSafe icon"><span>BioSafe</span>
+        </a>
+        <nav class="nav-links">
+            <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+            <a href="user.html" class="btn-login-nav"><i class="fa-solid fa-house"></i> Home</a>
+        </nav>
+    </div>
+</header>
+
+<div class="page-wrap">
+
+    <!-- ================= LOGIN VIEW ================= -->
+    <div id="loginView">
+        <div class="login-card">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <div style="width:70px;height:70px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--secondary),var(--primary));border-radius:50%;color:#fff;font-size:1.8rem;">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <h3 style="font-size:1.4rem;font-weight:800;color:var(--primary);">Patient Login</h3>
+                <p style="color:var(--text-light);font-size:.88rem;">Access your personal health record</p>
+            </div>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="nationalId">National ID</label>
+                    <input type="text" id="nationalId" pattern="\d{14}" maxlength="14" required placeholder="14-digit ID">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" minlength="6" required placeholder="Your password">
+                </div>
+                <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-right-to-bracket"></i> Log In
+                </button>
+                <div class="form-msg" id="loginMsg"></div>
+            </form>
+
+            <!-- زر البصمة: يظهر تلقائياً إذا الجهاز يدعم WebAuthn -->
+            <div id="bioLoginWrap" style="display:none;">
+                <div class="divider"><span>or</span></div>
+                <button type="button" id="bioLoginBtn" class="btn-scan" style="width:100%;">
+                    <i class="fa-solid fa-fingerprint"></i> Login with Fingerprint
+                </button>
+                <div id="bioLoginMsg" style="font-size:.82rem;margin-top:.6rem;text-align:center;color:var(--text-light);"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= DASHBOARD VIEW ================= -->
+    <div class="dashboard" id="dashboardView">
+        <div class="profile-card">
+            <h2 id="patName">—</h2>
+            <div class="meta">
+                <span><i class="fa-solid fa-id-card"></i> <span id="patId">—</span></span>
+                <span><i class="fa-solid fa-droplet"></i> <span id="patBlood">—</span></span>
+                <span><i class="fa-solid fa-cake-candles"></i> <span id="patDOB">—</span></span>
+            </div>
+            <div id="passkeyBadgeWrap" style="display:none;">
+                <span class="passkey-badge">
+                    <i class="fa-solid fa-fingerprint"></i> Fingerprint login enabled
+                </span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fa-solid fa-triangle-exclamation" style="color:#b45309;"></i> Important Notes from Doctors</h3>
+            <div id="importantNotesList" class="notes-area"><p class="empty-hint">Loading...</p></div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fa-solid fa-id-card"></i> Personal Information</h3>
+            <div id="patientInfoRows"></div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fa-solid fa-file-medical"></i> Medical History</h3>
+            <div id="historyPinGate" class="pin-gate">
+                <h3><i class="fa-solid fa-lock"></i> Protected</h3>
+                <p>Enter your 4-digit PIN to view your past medical records.</p>
+                <div style="max-width:320px;margin:0 auto;">
+                    <div class="input-group">
+                        <label>Your PIN</label>
+                        <input type="password" id="historyPinInput" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+                    </div>
+                    <button type="button" class="btn-pin" id="unlockHistoryBtn" style="width:100%;">
+                        <i class="fa-solid fa-unlock"></i> Unlock
+                    </button>
+                    <button type="button" class="btn-scan" id="setPinBtn" style="width:100%;margin-top:.6rem;background:linear-gradient(135deg,#6b7280,#374151);">
+                        <i class="fa-solid fa-key"></i> Set / Change PIN
+                    </button>
+                </div>
+                <div class="form-msg" id="historyPinMsg" style="max-width:400px;margin:1rem auto 0;"></div>
+            </div>
+            <div id="medicalHistoryArea" style="display:none;">
+                <div id="patientRecordsList"><p class="empty-hint">No records yet.</p></div>
+                <button class="btn-scan" id="lockHistoryBtn" style="background:linear-gradient(135deg,#6b7280,#374151);margin-top:1rem;">
+                    <i class="fa-solid fa-lock"></i> Lock
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= FORCED FINGERPRINT OVERLAY ================= -->
+<div class="bio-overlay" id="bioOverlay">
+    <div class="bio-modal">
+        <div class="bio-icon"><i class="fa-solid fa-fingerprint"></i></div>
+        <h3>Register Your Fingerprint</h3>
+        <p>
+            You must register your phone's fingerprint <strong>now</strong> to continue.
+            This is required for your account security.
+        </p>
+        <div class="bio-note">
+            <i class="fa-solid fa-circle-info"></i>
+            This fingerprint is stored securely on your phone and linked to your account.
+        </div>
+        <button type="button" id="setupBioBtn" class="btn-scan" style="width:100%;">
+            <i class="fa-solid fa-fingerprint"></i> Register My Fingerprint
+        </button>
+        <div class="form-msg" id="setupBioMsg"></div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   bioSafe — Patient Page
+   ============================================================ */
+
+const SUPABASE_URL      = 'https://wdqyrptwddlyhejaykmr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_5_kwnEO80DvDLSsSHvwkGQ_gdLv1dC4';
+const supabaseClient    = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------- Helpers ---------- */
+async function hashPassword(password){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function bytesToBase64(bytes){ let s = ''; for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
+function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function formatDate(d){ if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
+
+/* ---------- State ---------- */
+let currentPatient = null;
+let pendingPatient = null;
+
+/* ============================================================
+   WebAuthn: إنشاء Passkey
+   ============================================================ */
+async function createPasskey(nationalId, fullName, onStatus){
+    if (!window.PublicKeyCredential){
+        return { ok:false, error:'This browser does not support fingerprint. Please use Chrome/Safari over HTTPS.' };
+    }
+    try {
+        if (onStatus) onStatus("Touch your phone's fingerprint sensor...");
+        const challenge = crypto.getRandomValues(new Uint8Array(32));
+        const userId    = new TextEncoder().encode(String(nationalId));
+        const cred = await navigator.credentials.create({ publicKey: {
+            challenge,
+            rp: { name: 'bioSafe', id: window.location.hostname },
+            user: { id: userId, name: String(nationalId), displayName: fullName },
+            pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+            authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+            timeout: 60000
+        }});
+        if (!cred) throw new Error('Fingerprint registration was cancelled.');
+        const id = bytesToBase64(new Uint8Array(cred.rawId));
+        return { ok:true, credentialId:id };
+    } catch (err) {
+        return { ok:false, error: err.message || 'Fingerprint registration failed' };
+    }
+}
+
+/* ============================================================
+   WebAuthn: التحقق من البصمة
+   ============================================================ */
+async function authenticatePasskey(onStatus){
+    if (!window.PublicKeyCredential){
+        return { ok:false, error:'This browser does not support fingerprint.' };
+    }
+    try {
+        if (onStatus) onStatus("Touch your phone's fingerprint sensor...");
+        const challenge = crypto.getRandomValues(new Uint8Array(32));
+        const assertion = await navigator.credentials.get({ publicKey: {
+            challenge, rpId: window.location.hostname,
+            userVerification: 'required', timeout: 60000
+        }});
+        if (!assertion) throw new Error('Fingerprint verification cancelled.');
+        const id = bytesToBase64(new Uint8Array(assertion.rawId));
+        return { ok:true, credentialId:id };
+    } catch (err) {
+        return { ok:false, error: err.message || 'Fingerprint verification failed' };
+    }
+}
+
+/* ============================================================
+   INIT — إظهار زر البصمة إذا الجهاز يدعم WebAuthn
+   ============================================================ */
+(async function init(){
+    const wrap = document.getElementById('bioLoginWrap');
+    if (!window.PublicKeyCredential){ wrap.style.display = 'none'; return; }
+    try {
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (!available){ wrap.style.display = 'none'; return; }
+    } catch (e){ wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+})();
+
+/* ============================================================
+   Password login — مع فرض البصمة أول مرة
+   ============================================================ */
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('loginMsg');
+    msg.className = 'form-msg'; msg.textContent = '';
+
+    const nationalId = document.getElementById('nationalId').value.trim();
+    const hash = await hashPassword(document.getElementById('password').value);
+
+    const { data, error } = await supabaseClient
+        .from('patients').select('*')
+        .eq('national_id', nationalId)
+        .eq('password', hash).maybeSingle();
+
+    if (error){ msg.className = 'form-msg err'; msg.textContent = '❌ ' + error.message; return; }
+    if (!data){ msg.className = 'form-msg err'; msg.textContent = '❌ Invalid National ID or password'; return; }
+
+    const patient = mapPatient(data);
+
+    // ❌ لا توجد بصمة → Overlay إجباري
+    if (!data.mobile_credential_id){
+        pendingPatient = patient;
+        document.getElementById('bioOverlay').classList.add('active');
+        document.getElementById('setupBioMsg').className = 'form-msg';
+        document.getElementById('setupBioMsg').textContent = '';
+        return;
+    }
+
+    // ✅ توجد بصمة → داشبورد
+    currentPatient = patient;
+    showDashboard();
+});
+
+/* ============================================================
+   زر تسجيل البصمة في الـ Overlay الإجباري
+   ============================================================ */
+document.getElementById('setupBioBtn').addEventListener('click', async () => {
+    if (!pendingPatient) return;
+
+    const btn = document.getElementById('setupBioBtn');
+    const msg = document.getElementById('setupBioMsg');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Waiting for fingerprint...';
+    msg.className = 'form-msg'; msg.textContent = '';
+
+    const result = await createPasskey(
+        pendingPatient.nationalId,
+        pendingPatient.fullName,
+        (m) => { msg.className = 'form-msg ok'; msg.textContent = m; }
+    );
+
+    if (!result.ok){
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-fingerprint"></i> Register My Fingerprint';
+        msg.className = 'form-msg err';
+        msg.textContent = '❌ ' + result.error;
+        return;
+    }
+
+    const { error: updErr } = await supabaseClient
+        .from('patients')
+        .update({ mobile_credential_id: result.credentialId })
+        .eq('national_id', pendingPatient.nationalId);
+
+    if (updErr){
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-fingerprint"></i> Register My Fingerprint';
+        msg.className = 'form-msg err';
+        msg.textContent = '❌ Could not save fingerprint: ' + updErr.message;
+        return;
+    }
+
+    msg.className = 'form-msg ok';
+    msg.textContent = '✅ Fingerprint saved! Opening your record...';
+    await sleep(900);
+
+    currentPatient = pendingPatient;
+    pendingPatient = null;
+    document.getElementById('bioOverlay').classList.remove('active');
+    showDashboard();
+});
+
+/* ============================================================
+   زر "Login with Fingerprint"
+   ============================================================ */
+document.getElementById('bioLoginBtn').addEventListener('click', async () => {
+    const msgEl = document.getElementById('bioLoginMsg');
+    const btn   = document.getElementById('bioLoginBtn');
+    btn.disabled = true;
+    msgEl.textContent = "Touch your phone's fingerprint sensor...";
+    msgEl.style.color = 'var(--secondary)';
+
+    const auth = await authenticatePasskey((m) => { msgEl.textContent = m; });
+
+    if (!auth.ok){
+        btn.disabled = false;
+        msgEl.textContent = '❌ ' + auth.error;
+        msgEl.style.color = '#991b1b';
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from('patients').select('*')
+        .eq('mobile_credential_id', auth.credentialId).maybeSingle();
+
+    if (error || !data){
+        btn.disabled = false;
+        msgEl.textContent = '❌ No account linked to this fingerprint. Please log in with your password first.';
+        msgEl.style.color = '#991b1b';
+        return;
+    }
+
+    currentPatient = mapPatient(data);
+    showDashboard();
+});
+
+/* ============================================================
+   Dashboard
+   ============================================================ */
+function showDashboard(){
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('dashboardView').classList.add('active');
+    document.getElementById('logoutBtn').style.display = 'inline-flex';
+
+    document.getElementById('patName').textContent  = currentPatient.fullName || '—';
+    document.getElementById('patId').textContent    = currentPatient.nationalId || '—';
+    document.getElementById('patBlood').textContent = currentPatient.bloodType || '—';
+    document.getElementById('patDOB').textContent   = currentPatient.dateOfBirth || '—';
+
+    const badgeWrap = document.getElementById('passkeyBadgeWrap');
+    badgeWrap.style.display = currentPatient.hasPasskey ? 'block' : 'none';
+
+    loadPatientData();
+}
+
+async function loadPatientData(){
+    if (!currentPatient) return;
+    await loadImportantNotes(currentPatient.nationalId);
+    renderPatientInfo();
+    resetHistoryGate();
+}
+
+async function loadImportantNotes(patientNationalId){
+    const listEl = document.getElementById('importantNotesList');
+    listEl.innerHTML = '<p class="empty-hint">Loading notes...</p>';
+    const { data, error } = await supabaseClient
+        .from('important_notes').select('*')
+        .eq('patient_national_id', patientNationalId)
+        .order('created_at', { ascending: false });
+    if (error){ listEl.innerHTML = `<p class="empty-hint" style="color:#991b1b;">${escapeHtml(error.message)}</p>`; return; }
+    if (!data || !data.length){ listEl.innerHTML = '<p class="empty-hint">No important notes yet.</p>'; return; }
+    listEl.innerHTML = data.map(n => `
+        <div class="note-item">
+            <div class="note-text"><i class="fa-solid fa-triangle-exclamation" style="color:#b45309;margin-right:.4rem;"></i>${escapeHtml(n.note)}</div>
+            <div class="note-meta"><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(n.doctor_name || 'Doctor')}${n.hospital ? ' · ' + escapeHtml(n.hospital) : ''} · ${formatDate(n.created_at)}</div>
+        </div>`).join('');
+}
+
+function renderPatientInfo(){
+    const values = [
+        { label: 'Full Name',     value: currentPatient.fullName },
+        { label: 'National ID',   value: currentPatient.nationalId },
+        { label: 'Blood Type',    value: currentPatient.bloodType },
+        { label: 'Date of Birth', value: currentPatient.dateOfBirth },
+        { label: 'Email',         value: currentPatient.email },
+        { label: 'Phone',         value: currentPatient.phone },
+        { label: 'Address',       value: currentPatient.address }
+    ];
+    document.getElementById('patientInfoRows').innerHTML = values.map(v => `
+        <div class="info-row">
+            <span class="info-label">${v.label}</span>
+            <span class="info-value ${v.value ? '' : 'muted'}">${v.value ? escapeHtml(v.value) : '—'}</span>
+        </div>`).join('');
+}
+
+/* ============================================================
+   PIN gate for medical history
+   ============================================================ */
+function resetHistoryGate(){
+    document.getElementById('historyPinGate').style.display = 'block';
+    document.getElementById('medicalHistoryArea').style.display = 'none';
+    document.getElementById('historyPinInput').value = '';
+    const m = document.getElementById('historyPinMsg');
+    m.className = 'form-msg'; m.textContent = '';
+}
+
+document.getElementById('historyPinInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+});
+document.getElementById('historyPinInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('unlockHistoryBtn').click();
+});
+
+document.getElementById('unlockHistoryBtn').addEventListener('click', async () => {
+    const msg = document.getElementById('historyPinMsg');
+    const pin = document.getElementById('historyPinInput').value.trim();
+    if (!/^\d{4}$/.test(pin)){ msg.className = 'form-msg err'; msg.textContent = '❌ Enter a 4-digit PIN'; return; }
+    if (!currentPatient) return;
+
+    const { data, error } = await supabaseClient
+        .from('patients').select('view_pin')
+        .eq('national_id', currentPatient.nationalId).maybeSingle();
+    if (error){ msg.className = 'form-msg err'; msg.textContent = '❌ ' + error.message; return; }
+    if (!data || !data.view_pin){ msg.className = 'form-msg err'; msg.textContent = '❌ You have not set a PIN yet. Click "Set / Change PIN".'; return; }
+
+    const hashed = await hashPassword(pin);
+    if (hashed !== data.view_pin){ msg.className = 'form-msg err'; msg.textContent = '❌ Incorrect PIN'; return; }
+
+    msg.className = 'form-msg ok'; msg.textContent = '✅ Unlocked';
+    await sleep(300);
+    document.getElementById('historyPinGate').style.display = 'none';
+    document.getElementById('medicalHistoryArea').style.display = 'block';
+    await loadPatientRecords(currentPatient.nationalId);
+});
+
+document.getElementById('setPinBtn').addEventListener('click', async () => {
+    if (!currentPatient) return;
+    const pin = prompt('Enter a new 4-digit PIN for your medical history:');
+    if (!pin || !/^\d{4}$/.test(pin)){ alert('PIN must be exactly 4 digits.'); return; }
+    const hashed = await hashPassword(pin);
+    const { error } = await supabaseClient.from('patients')
+        .update({ view_pin: hashed })
+        .eq('national_id', currentPatient.nationalId);
+    if (error){ alert('❌ ' + error.message); return; }
+    alert('✅ PIN saved successfully.');
+});
+
+document.getElementById('lockHistoryBtn').addEventListener('click', () => {
+    resetHistoryGate();
+});
+
+async function loadPatientRecords(patientNationalId){
+    const div = document.getElementById('patientRecordsList');
+    div.innerHTML = '<p class="empty-hint">Loading...</p>';
+    const { data, error } = await supabaseClient
+        .from('medical_records').select('*')
+        .eq('patient_national_id', patientNationalId)
+        .order('visit_date', { ascending: false });
+    if (error){ div.innerHTML = '<p style="color:#991b1b;">Could not load records.</p>'; return; }
+    if (!data || !data.length){ div.innerHTML = '<p class="empty-hint">No medical records yet.</p>'; return; }
+    div.innerHTML = data.map(r => `
+        <div class="record-card">
+            <div class="record-head">
+                <span class="diagnosis">${escapeHtml(r.diagnosis)}</span>
+                <span class="date">${formatDate(r.visit_date)}</span>
+            </div>
+            ${r.treatment ? `<div class="field"><strong>Treatment:</strong> ${escapeHtml(r.treatment)}</div>` : ''}
+            ${r.medications ? `<div class="field"><strong>Medications:</strong> ${escapeHtml(r.medications)}</div>` : ''}
+            ${r.notes ? `<div class="field"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>` : ''}
+            <div class="field" style="font-size:.8rem;color:var(--text-light);"><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(r.doctor_name || 'Doctor')}${r.hospital ? ' — ' + escapeHtml(r.hospital) : ''}</div>
+        </div>`).join('');
+}
+
+/* ============================================================
+   Logout
+   ============================================================ */
+function logout(){
+    currentPatient = null;
+    pendingPatient = null;
+
+    document.getElementById('dashboardView').classList.remove('active');
+    document.getElementById('loginView').style.display = 'block';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('bioOverlay').classList.remove('active');
+
+    document.getElementById('loginForm').reset();
+    document.getElementById('bioLoginBtn').disabled = false;
+    document.getElementById('bioLoginMsg').textContent = '';
+
+    const sb = document.getElementById('setupBioBtn');
+    sb.disabled = false;
+    sb.innerHTML = '<i class="fa-solid fa-fingerprint"></i> Register My Fingerprint';
+    document.getElementById('setupBioMsg').className = 'form-msg';
+    document.getElementById('setupBioMsg').textContent = '';
+}
+
+function mapPatient(p){
+    return {
+        nationalId: p.national_id,
+        fullName: p.full_name,
+        email: p.email,
+        phone: p.phone,
+        bloodType: p.blood_type,
+        dateOfBirth: p.date_of_birth,
+        address: p.address,
+        hasPasskey: !!p.mobile_credential_id
+    };
+}
+</script>
+</body>
+</html>

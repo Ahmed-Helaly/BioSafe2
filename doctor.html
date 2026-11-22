@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bioSafe | Doctor Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+    --primary:#1b3a5c; --primary-light:#2a5580;
+    --secondary:#1a9e8f; --secondary-light:#22c4b2;
+    --bg:#f6f9fc; --bg-alt:#eef4f8; --white:#ffffff;
+    --text:#1e293b; --text-light:#64748b; --border:#dbe4ee;
+    --shadow-sm:0 2px 8px rgba(27,58,92,.06);
+    --shadow-md:0 8px 30px rgba(27,58,92,.10);
+    --shadow-lg:0 20px 60px rgba(27,58,92,.16);
+    --radius:14px; --radius-lg:22px;
+    --transition:.3s cubic-bezier(.4,0,.2,1);
+    --note:#f59e0b;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;
+    display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;
+}
+a{text-decoration:none;color:inherit;}
+img{max-width:100%;height:auto;display:block;}
+
+header{
+    position:sticky;top:0;z-index:100;
+    background:rgba(255,255,255,.82);backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+}
+.nav-container{
+    max-width:1200px;margin:0 auto;padding:.7rem 2rem;
+    display:flex;align-items:center;justify-content:space-between;
+}
+.logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.35rem;color:var(--primary);letter-spacing:-.02em;}
+.logo img{width:38px;height:38px;object-fit:contain;}
+.logo span{
+    background:linear-gradient(135deg,var(--primary) 0%,var(--primary) 48%,var(--secondary) 52%,var(--secondary) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-links{display:flex;align-items:center;gap:1rem;}
+.btn-login-nav{
+    display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1.4rem;
+    font-size:.9rem;font-weight:700;font-family:inherit;color:var(--white);
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    border-radius:50px;transition:all var(--transition);
+    box-shadow:0 4px 14px rgba(26,158,143,.25);border:none;cursor:pointer;
+}
+.btn-login-nav:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(26,158,143,.35);}
+
+.page-wrap{max-width:1000px;margin:2rem auto 4rem;padding:0 1.5rem;width:100%;}
+.login-card{
+    background:var(--white);border-radius:var(--radius-lg);padding:2.5rem 2rem;
+    box-shadow:var(--shadow-lg);max-width:420px;margin:3rem auto;border:1px solid var(--border);
+}
+.dashboard{display:none;}
+.dashboard.active{display:block;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+.profile-card{
+    background:linear-gradient(135deg,var(--secondary),var(--primary));
+    color:#fff;border-radius:var(--radius-lg);padding:2rem;margin-bottom:2rem;
+    box-shadow:var(--shadow-md);
+}
+.profile-card h2{font-size:1.6rem;margin-bottom:.3rem;}
+.profile-card .meta{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1rem;font-size:.9rem;opacity:.92;}
+
+.tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:2px solid var(--border);flex-wrap:wrap;}
+.tab-btn{
+    padding:.8rem 1.4rem;border:none;background:none;cursor:pointer;font-family:inherit;
+    font-weight:700;color:var(--text-light);border-bottom:3px solid transparent;
+    margin-bottom:-2px;transition:all .3s;
+}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--secondary);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadeUp .4s ease;}
+
+.card{background:var(--white);border-radius:var(--radius-lg);padding:2rem;box-shadow:var(--shadow-md);border:1px solid var(--border);margin-bottom:1.5rem;}
+.card h3{color:var(--primary);font-weight:800;margin-bottom:1rem;font-size:1.2rem;}
+
+.search-row{display:flex;gap:.7rem;flex-wrap:wrap;}
+.search-row input{flex:1;min-width:200px;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--radius);font-family:inherit;background:var(--bg);outline:none;}
+.search-row input:focus{border-color:var(--secondary);background:#fff;}
+.search-row button{padding:.75rem 1.5rem;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:none;border-radius:var(--radius);font-family:inherit;font-weight:700;cursor:pointer;transition:all .3s;}
+.search-row button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(26,158,143,.3);}
+.search-row button:disabled{opacity:.6;cursor:not-allowed;}
+
+/* ===== Patient section ===== */
+.patient-section{background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid var(--border);margin-bottom:1.5rem;overflow:hidden;}
+.patient-section .section-head{
+    background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;
+    padding:1.2rem 1.8rem;
+}
+.patient-section .section-head h2{font-size:1.3rem;font-weight:800;display:flex;align-items:center;gap:.6rem;}
+.patient-section .section-head .pid{font-size:.9rem;opacity:.85;margin-top:.2rem;}
+.patient-section .section-body{padding:1.5rem 1.8rem;}
+
+/* Personal info */
+.personal-info-block{margin-bottom:1.6rem;}
+.personal-info-block .block-title{
+    font-weight:800;color:var(--primary);font-size:1rem;margin-bottom:.8rem;
+    display:flex;align-items:center;gap:.5rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);
+}
+.info-row{
+    display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+    padding:.65rem .9rem;border-radius:10px;margin-bottom:.5rem;
+    background:var(--bg);border-left:3px solid var(--secondary);
+}
+.info-row .info-label{font-size:.86rem;font-weight:700;color:var(--primary);min-width:130px;}
+.info-row .info-value{font-size:.92rem;flex:1;color:var(--text);}
+.info-row .info-value.muted{color:var(--text-light);font-style:italic;}
+
+/* Notes */
+.notes-area{display:flex;flex-direction:column;gap:.6rem;}
+.note-item{
+    background:#fffbeb;border:1px solid #fde68a;border-left:4px solid var(--note);
+    border-radius:var(--radius);padding:.7rem 1rem;font-size:.9rem;
+}
+.note-item .note-text{color:var(--text);}
+.note-item .note-meta{font-size:.75rem;color:var(--text-light);margin-top:.35rem;}
+.note-item .note-meta i{margin-right:.3rem;}
+
+/* Records */
+.record-card{background:var(--white);border-radius:var(--radius);padding:1.1rem 1.4rem;box-shadow:var(--shadow-sm);border:1px solid var(--border);margin-bottom:.8rem;border-left:4px solid var(--secondary);}
+.record-card .record-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;}
+.record-card .diagnosis{font-weight:800;color:var(--primary);}
+.record-card .date{font-size:.82rem;color:var(--text-light);background:var(--bg-alt);padding:.2rem .7rem;border-radius:50px;}
+.record-card .field{font-size:.88rem;margin:.3rem 0;}
+.record-card .field strong{color:var(--primary);}
+
+/* Subtabs */
+.subtabs{display:flex;gap:.4rem;margin-bottom:1.4rem;border-bottom:2px solid var(--border);flex-wrap:wrap;}
+.subtab-btn{
+    padding:.65rem 1.2rem;border:none;background:none;cursor:pointer;font-family:inherit;
+    font-weight:700;color:var(--text-light);border-bottom:3px solid transparent;
+    margin-bottom:-2px;transition:all .3s;font-size:.9rem;
+}
+.subtab-btn.active{color:var(--secondary);border-bottom-color:var(--secondary);}
+.subtab-panel{display:none;}
+.subtab-panel.active{display:block;animation:fadeUp .3s ease;}
+
+/* PIN gate */
+.pin-gate{
+    background:#f8fafc;border:2px dashed var(--secondary);
+    border-radius:var(--radius-lg);padding:2.5rem 1.5rem;text-align:center;
+    margin:1.2rem 0;
+}
+.pin-gate h3{color:var(--primary);margin-bottom:.6rem;font-size:1.2rem;}
+.pin-gate p{color:var(--text-light);margin-bottom:1.3rem;font-size:.9rem;}
+.btn-pin{
+    background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:none;
+    padding:.8rem 2rem;font-size:1rem;font-weight:700;border-radius:var(--radius);
+    cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:.5rem;
+}
+.btn-pin:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(26,158,143,.3);}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+@media(max-width:640px){.grid-2{grid-template-columns:1fr;}}
+
+.input-group{margin-bottom:1.2rem;}
+.input-group label{display:block;font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:.4rem;letter-spacing:.02em;}
+.input-group input, .input-group select, .input-group textarea{
+    width:100%;padding:.75rem 1rem;font-size:.92rem;font-family:inherit;color:var(--text);
+    background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);
+    outline:none;transition:all var(--transition);
+}
+.input-group textarea{resize:vertical;min-height:80px;}
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus{border-color:var(--secondary);background:#fff;box-shadow:0 0 0 4px rgba(26,158,143,.12);}
+
+.form-msg{margin-top:1rem;padding:.8rem 1rem;border-radius:var(--radius);font-weight:600;display:none;}
+.form-msg.ok{display:block;background:#dcfce7;color:#166534;}
+.form-msg.err{display:block;background:#fee2e2;color:#991b1b;}
+
+.logout-btn{background:var(--bg-alt);color:var(--primary);border:1px solid var(--border);padding:.5rem 1.1rem;border-radius:50px;font-family:inherit;font-weight:700;cursor:pointer;font-size:.85rem;display:inline-flex;align-items:center;gap:.4rem;}
+.logout-btn:hover{background:#fee2e2;color:#991b1b;border-color:#fecaca;}
+.section-title{font-size:1.3rem;font-weight:800;color:var(--primary);margin-bottom:1rem;margin-top:2rem;}
+
+.btn-submit{
+    width:100%;padding:.85rem 1.5rem;font-size:1rem;font-weight:700;font-family:inherit;
+    color:var(--white);background:linear-gradient(135deg,var(--primary),var(--secondary));
+    border:none;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:.55rem;transition:all var(--transition);margin-top:.5rem;
+}
+.btn-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(26,158,143,.35);}
+.btn-submit.note-btn{background:linear-gradient(135deg,#b45309,#f59e0b);}
+
+.btn-scan{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    padding:.7rem 1.4rem;font-family:inherit;font-weight:700;font-size:.9rem;
+    color:#fff;border:none;border-radius:var(--radius);cursor:pointer;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));transition:all .3s;
+}
+.btn-scan:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(26,158,143,.3);}
+.btn-scan:disabled{opacity:.6;cursor:not-allowed;}
+.btn-scan.scanned{background:linear-gradient(135deg,#166534,#22c55e);}
+.scan-row{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;}
+.scan-status{font-size:.82rem;color:var(--text-light);}
+
+.divider{display:flex;align-items:center;gap:1rem;margin:1.6rem 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{font-size:.75rem;font-weight:600;color:var(--text-light);white-space:nowrap;letter-spacing:.02em;}
+
+.empty-hint{color:var(--text-light);font-size:.88rem;font-style:italic;padding:.4rem 0;}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="nav-container">
+        <a href="doctor.html" class="logo"><img src="Icon.png" alt="bioSafe icon"><span>BioSafe</span></a>
+        <nav class="nav-links">
+            <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            <a href="doctor.html" class="btn-login-nav"><i class="fa-solid fa-house"></i> Home</a>
+        </nav>
+    </div>
+</header>
+
+<div class="page-wrap">
+
+    <!-- ================= LOGIN VIEW ================= -->
+    <div id="loginView">
+        <div class="login-card">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <div style="width:70px;height:70px;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--secondary),var(--primary));border-radius:50%;color:#fff;font-size:1.8rem;">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </div>
+                <h3 style="font-size:1.4rem;font-weight:800;color:var(--primary);">Doctor Login</h3>
+                <p style="color:var(--text-light);font-size:.88rem;">Access patient records and add diagnoses</p>
+            </div>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="nationalId">National ID</label>
+                    <input type="text" id="nationalId" pattern="\d{14}" maxlength="14" required placeholder="14-digit ID">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" minlength="6" required placeholder="Your password">
+                </div>
+                <button type="submit" class="btn-submit"><i class="fa-solid fa-right-to-bracket"></i> Log In</button>
+                <div class="form-msg" id="loginMsg"></div>
+            </form>
+            <div class="divider"><span>or</span></div>
+            <button type="button" id="bioLoginBtn" class="btn-scan" style="width:100%;">
+                <i class="fa-solid fa-fingerprint"></i> Login with Fingerprint
+            </button>
+            <div id="bioLoginMsg" style="font-size:.82rem;margin-top:.6rem;text-align:center;color:var(--text-light);"></div>
+        </div>
+    </div>
+
+    <!-- ================= DASHBOARD VIEW ================= -->
+    <div class="dashboard" id="dashboardView">
+        <div class="profile-card">
+            <h2 id="docName">—</h2>
+            <div class="meta">
+                <span><i class="fa-solid fa-stethoscope"></i> <span id="docSpec">—</span></span>
+                <span><i class="fa-solid fa-hospital"></i> <span id="docHospital">—</span></span>
+                <span><i class="fa-solid fa-id-card"></i> <span id="docId">—</span></span>
+            </div>
+            <div style="margin-top:1.2rem;">
+                <button type="button" id="linkMobileBtn" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);padding:.45rem 1rem;border-radius:50px;font-family:inherit;font-weight:700;font-size:.82rem;cursor:pointer;">
+                    <i class="fa-solid fa-mobile-screen-button"></i> Link This Phone's Fingerprint
+                </button>
+                <span id="linkMobileMsg" style="font-size:.8rem;margin-left:.6rem;"></span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="records"><i class="fa-solid fa-file-medical"></i> Patient Records</button>
+            <button class="tab-btn" data-tab="add-patient"><i class="fa-solid fa-user-plus"></i> Add New Patient</button>
+        </div>
+
+        <!-- ============ TAB: Patient Records ============ -->
+        <div class="tab-panel active" id="tab-records">
+            <div class="card">
+                <h3><i class="fa-solid fa-magnifying-glass"></i> Find Patient</h3>
+                <div class="search-row">
+                    <input type="text" id="searchNationalId" placeholder="Enter patient National ID (14 digits)" maxlength="14">
+                    <button type="button" onclick="searchPatient()"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+                </div>
+                <div class="divider"><span>or search by fingerprint</span></div>
+                <div class="scan-row">
+                    <button type="button" id="pFingerSearchBtn" class="btn-scan"><i class="fa-solid fa-fingerprint"></i> Search Patient by Fingerprint</button>
+                    <span id="pFingerSearchStatus" class="scan-status">Not scanned</span>
+                </div>
+            </div>
+
+            <!-- ============ PATIENT SECTION ============ -->
+            <div id="patientSection" class="patient-section" style="display:none;">
+                <div class="section-head">
+                    <h2><i class="fa-solid fa-user"></i> <span id="psName">Patient</span></h2>
+                    <div class="pid" id="psId">ID: —</div>
+                </div>
+                <div class="section-body">
+
+                    <!-- ===== 1) Important Notes (ظاهرة دايماً) ===== -->
+                    <div class="personal-info-block">
+                        <div class="block-title">
+                            <i class="fa-solid fa-triangle-exclamation" style="color:#b45309;"></i> Important Notes
+                        </div>
+                        <div id="importantNotesList" class="notes-area"></div>
+                    </div>
+
+                    <!-- ===== 2) Personal Info (ظاهرة دايماً) ===== -->
+                    <div class="personal-info-block">
+                        <div class="block-title"><i class="fa-solid fa-id-card"></i> Personal Information</div>
+                        <div id="patientInfoRows"></div>
+                    </div>
+
+                    <!-- ===== 3) Subtabs ===== -->
+                    <div class="subtabs">
+                        <button class="subtab-btn active" data-subtab="notes-add"><i class="fa-solid fa-plus"></i> Add Note</button>
+                        <button class="subtab-btn" data-subtab="medical-add"><i class="fa-solid fa-file-medical"></i> Add Medical Report</button>
+                        <button class="subtab-btn" data-subtab="medical-view"><i class="fa-solid fa-list"></i> View Medical History</button>
+                    </div>
+
+                    <!-- Subtab: Add Note -->
+                    <div class="subtab-panel active" id="subtab-notes-add">
+                        <form id="noteForm" style="margin-top:.5rem;">
+                            <div class="input-group">
+                                <label>Add Important Note *</label>
+                                <textarea id="noteText" required placeholder="Enter important clinical note, alert, or reminder..."></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit note-btn">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Save Important Note
+                            </button>
+                            <div class="form-msg" id="noteMsg"></div>
+                        </form>
+                    </div>
+
+                    <!-- Subtab: Add Medical Report -->
+                    <div class="subtab-panel" id="subtab-medical-add">
+                        <h3 style="color:var(--primary);font-weight:800;margin-bottom:1rem;font-size:1.1rem;">
+                            <i class="fa-solid fa-plus-circle"></i> Add Medical Report
+                        </h3>
+                        <form id="recordForm">
+                            <div class="grid-2">
+                                <div class="input-group"><label>Diagnosis *</label><input type="text" id="rDiagnosis" required placeholder="e.g. Hypertension"></div>
+                                <div class="input-group"><label>Visit Date</label><input type="date" id="rVisitDate"></div>
+                                <div class="input-group"><label>Treatment</label><input type="text" id="rTreatment" placeholder="Treatment plan"></div>
+                                <div class="input-group"><label>Medications</label><input type="text" id="rMedications" placeholder="Prescribed meds"></div>
+                            </div>
+                            <div class="input-group"><label>Notes</label><textarea id="rNotes" placeholder="Additional clinical notes..."></textarea></div>
+                            <button type="submit" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Save Record</button>
+                            <div class="form-msg" id="recordMsg"></div>
+                        </form>
+                    </div>
+
+                    <!-- Subtab: View Medical History (محمي بـ PIN اختياري) -->
+                    <div class="subtab-panel" id="subtab-medical-view">
+                        <div id="viewHistoryPinGate" class="pin-gate" style="margin-bottom:1.5rem;">
+                            <h3><i class="fa-solid fa-lock"></i> Protected History</h3>
+                            <p>Ask the patient for their 4-digit PIN to view past medical records.</p>
+                            <div style="max-width:320px;margin: 0 auto;">
+                                <div class="input-group">
+                                    <label>Patient's PIN</label>
+                                    <input type="password" id="viewPinInput" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+                                </div>
+                                <button class="btn-pin" id="viewUnlockBtn" style="width:100%;">
+                                    <i class="fa-solid fa-unlock"></i> Unlock History
+                                </button>
+                            </div>
+                            <div class="form-msg" id="viewPinMsg" style="max-width:400px;margin:1rem auto 0;"></div>
+                        </div>
+
+                        <div id="medicalHistoryArea" style="display:none;">
+                            <h3 class="section-title" style="font-size:1.1rem;margin-top:0;">
+                                <i class="fa-solid fa-clipboard-list"></i> Past Medical Records
+                            </h3>
+                            <div id="patientRecordsList"><p class="empty-hint">No records yet.</p></div>
+                            <button class="btn-scan" id="lockHistoryBtn" style="background:linear-gradient(135deg,#6b7280,#374151);margin-top:1rem;">
+                                <i class="fa-solid fa-lock"></i> Lock History Again
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Doctor's own records list -->
+            <h3 class="section-title"><i class="fa-solid fa-clipboard-list"></i> Records & Notes I Created</h3>
+            <div id="doctorRecords"><p style="color:var(--text-light);">Loading...</p></div>
+        </div>
+
+        <!-- ============ TAB: Add Patient ============ -->
+        <div class="tab-panel" id="tab-add-patient">
+            <div class="card">
+                <h3><i class="fa-solid fa-user-plus"></i> Register New Patient</h3>
+                <form id="newPatientForm">
+                    <div class="grid-2">
+                        <div class="input-group"><label>National ID (14 digits)</label><input type="text" id="pNationalId" pattern="\d{14}" maxlength="14" required placeholder="14-digit ID"></div>
+                        <div class="input-group"><label>Password</label><input type="password" id="pPassword" minlength="6" required placeholder="Min 6 characters"></div>
+                        <div class="input-group"><label>Full Name</label><input type="text" id="pFullName" required placeholder="Patient full name"></div>
+                        <div class="input-group"><label>Email</label><input type="email" id="pEmail" placeholder="patient@email.com"></div>
+                        <div class="input-group"><label>Phone</label><input type="text" id="pPhone" placeholder="+20 ..."></div>
+                        <div class="input-group"><label>Blood Type</label>
+                            <select id="pBloodType">
+                                <option value="">Select</option>
+                                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+                            </select>
+                        </div>
+                        <div class="input-group"><label>Date of Birth</label><input type="date" id="pDOB"></div>
+                        <div class="input-group"><label>Address</label><input type="text" id="pAddress" placeholder="City / area"></div>
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fa-solid fa-fingerprint"></i> Patient Fingerprint (required)</label>
+                        <div class="scan-row">
+                            <button type="button" id="pScanBtn" class="btn-scan"><i class="fa-solid fa-fingerprint"></i> Scan Fingerprint</button>
+                            <span id="pScanStatus" class="scan-status">Not scanned</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i class="fa-solid fa-plus"></i> Add Patient</button>
+                    <div class="form-msg" id="patientMsg"></div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   bioSafe — Doctor Page (self-contained JS)
+   ============================================================ */
+
+const SUPABASE_URL      = 'https://wdqyrptwddlyhejaykmr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_5_kwnEO80DvDLSsSHvwkGQ_gdLv1dC4';
+const supabaseClient    = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function hashPassword(p){
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(p));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+/* ---------- Biometric bridge ---------- */
+let serialPort=null, portReader=null, portWriter=null, isScanning=false;
+const AS608_CMD={
+    VERIFY_PWD:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x07,0x13,0x00,0x00,0x00,0x00,0x00,0x1B]),
+    GET_IMAGE:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x03,0x01,0x00,0x05]),
+    IMAGE_TO_TZ_1:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x04,0x02,0x01,0x00,0x08]),
+    IMAGE_TO_TZ_2:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x04,0x02,0x02,0x00,0x09]),
+    REG_MODEL:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x03,0x05,0x00,0x09]),
+    UP_CHAR_1:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x04,0x08,0x01,0x00,0x0E]),
+    DOWN_CHAR_2:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x04,0x09,0x02,0x00,0x10]),
+    MATCH:new Uint8Array([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x03,0x03,0x00,0x07])
+};
+function bytesToBase64(bytes){let s='';for(let i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s);}
+function base64ToBytes(b64){const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}
+
+async function connectSensor(onStatus){
+    if(!("serial" in navigator)) throw new Error("Web Serial not supported on this device.");
+    
+    // لو الـ Port مفتوح بالفعل وشغال، نرجعه
+    if(serialPort && serialPort.readable && serialPort.writable) return true;
+    
+    // لو فيه Port قديم متسجل بس مش متفتوح، نظفه الأول
+    if(serialPort){
+        try {
+            if (portReader) { await portReader.cancel().catch(()=>{}); portReader.releaseLock(); }
+            if (portWriter) portWriter.releaseLock();
+            await serialPort.close();
+        } catch(e) {}
+        portReader = null; portWriter = null; serialPort = null;
+    }
+
+    if(onStatus) onStatus("Select the USB-TTL COM port from the browser popup...","info");
+    serialPort = await navigator.serial.requestPort();
+    
+    const bauds = [57600, 9600, 115200, 19200, 38400];
+    let connected = false;
+
+    for(const baud of bauds){
+        if(onStatus) onStatus(`Trying sensor at ${baud} baud...`,"info");
+        try{ 
+            // محاولة فتح البورت
+            await serialPort.open({baudRate:baud}); 
+        } catch(e){ 
+            // لو البورت مقفول ومفتوح في برنامج تاني
+            if(e.name === 'InvalidStateError' || e.message.includes('open')){
+                throw new Error("COM port is busy! Please close Arduino IDE, Serial Monitor, or any other program using the port, then try again.");
+            } else {
+                throw new Error("Could not open COM port. Check the USB cable and try again.");
+            }
+        }
+
+        try{
+            portWriter = serialPort.writable.getWriter();
+            portReader = serialPort.readable.getReader();
+            const r = await sendPacket(AS608_CMD.VERIFY_PWD, 12, 1500);
+            
+            if(r.length >= 10 && r[0] === 0xEF && r[1] === 0x01 && r[9] === 0x00){ 
+                connected = true; 
+                break; 
+            }
+        }catch(e){ 
+            console.warn(`No response at ${baud}:`, e.message||e); 
+        }
+
+        // لو فشل، نقفل البورت وننضف كل حاجة قبل تجربة الـ Baud اللي بعده
+        try{ if(portReader){await portReader.cancel().catch(()=>{}); portReader.releaseLock();} }catch(e){}
+        try{ if(portWriter) portWriter.releaseLock(); }catch(e){}
+        portReader = null; portWriter = null;
+        
+        try{ await serialPort.close(); }catch(e){}
+        
+        // استنى شوية صغيرين عشان الـ OS يفصل البورت تماماً
+        await sleep(500); 
+    }
+
+    if(!connected) throw new Error("AS608 did not respond. Check TX/RX wiring and 3.3V power.");
+    if(onStatus) onStatus("AS608 sensor connected!","success");
+    return true;
+}
+async function sendPacket(packet, expectedLength=12, timeoutMs=4000){
+    if(!portWriter||!portReader) throw new Error("Serial port is not connected.");
+    await portWriter.write(packet);
+    let buffer=new Uint8Array(0);
+    const start=Date.now();
+    while(buffer.length<expectedLength){
+        if(Date.now()-start>timeoutMs) throw new Error("Sensor response timeout.");
+        const remain=Math.max(1,timeoutMs-(Date.now()-start));
+        const {value,done}=await Promise.race([
+            portReader.read(),
+            new Promise((_,rej)=>setTimeout(()=>rej(new Error("Sensor response timeout.")),remain))
+        ]);
+        if(done) break;
+        if(value){const c=new Uint8Array(buffer.length+value.length);c.set(buffer);c.set(value,buffer.length);buffer=c;}
+    }
+    return buffer;
+}
+async function waitForFingerScan(maxWaitMs=15000){
+    const start=Date.now();
+    while(Date.now()-start<maxWaitMs){
+        if(!isScanning) throw new Error("Scan cancelled.");
+        const res=await sendPacket(AS608_CMD.GET_IMAGE,12);
+        if(res[9]===0x00) return true;
+        await sleep(250);
+    }
+    throw new Error("Timeout: No finger detected on sensor.");
+}
+async function downloadTemplate(){
+    await portWriter.write(AS608_CMD.UP_CHAR_1);
+    let raw=new Uint8Array(0);
+    const start=Date.now();
+    while(raw.length<568){
+        if(Date.now()-start>5000) break;
+        const {value,done}=await Promise.race([
+            portReader.read(),
+            new Promise((_,rej)=>setTimeout(()=>rej(new Error("Template read timeout.")),3000))
+        ]);
+        if(done) break;
+        if(value){const c=new Uint8Array(raw.length+value.length);c.set(raw);c.set(value,raw.length);raw=c;}
+    }
+    if(raw.length<12||raw[9]!==0x00) throw new Error("Failed to extract template from AS608.");
+    const tpl=new Uint8Array(512); let offset=12, outIdx=0;
+    while(offset+9<=raw.length && outIdx<512){
+        if(raw[offset]===0xEF && raw[offset+1]===0x01){
+            const pid=raw[offset+6];
+            const pkgLen=(raw[offset+7]<<8)|raw[offset+8];
+            const dataLen=pkgLen-2;
+            if(pid===0x02||pid===0x08){
+                const slice=raw.slice(offset+9,offset+9+dataLen);
+                tpl.set(slice.slice(0,512-outIdx),outIdx);
+                outIdx+=slice.length;
+            }
+            offset+=9+pkgLen;
+            if(pid===0x08) break;
+        } else offset++;
+    }
+    if(outIdx<512) throw new Error(`Incomplete template (${outIdx}/512 bytes).`);
+    return bytesToBase64(tpl);
+}
+
+async function uploadTemplateToSensor(base64Template){
+    const tpl=base64ToBytes(base64Template);
+    if(tpl.length!==512) return false;
+    const ack=await sendPacket(AS608_CMD.DOWN_CHAR_2,12,2000);
+    if(ack[9]!==0x00) return false;
+    const chunkSize=128;
+    for(let i=0;i<4;i++){
+        const isLast=(i===3);
+        const pid=isLast?0x08:0x02;
+        const pkgLen=chunkSize+2;
+        const chunk=tpl.slice(i*chunkSize,(i+1)*chunkSize);
+        let sum=pid+((pkgLen>>8)&0xFF)+(pkgLen&0xFF);
+        for(let b of chunk) sum+=b;
+        const packet=new Uint8Array(9+chunkSize+2);
+        packet.set([0xEF,0x01,0xFF,0xFF,0xFF,0xFF,pid,(pkgLen>>8)&0xFF,pkgLen&0xFF],0);
+        packet.set(chunk,9);
+        packet[9+chunkSize]=(sum>>8)&0xFF;
+        packet[9+chunkSize+1]=sum&0xFF;
+        await portWriter.write(packet);
+        await sleep(15);
+    }
+    return true;
+}
+
+const BioAuth = {
+    async register({onStatus, nationalId="user", fullName="bioSafe User"}={}){
+        if(!("serial" in navigator)) return this.registerMobile(nationalId, fullName, onStatus);
+        if(isScanning) return {ok:false, error:"A scan is already in progress."};
+        try{
+            await connectSensor(onStatus);
+            isScanning=true;
+            if(onStatus) onStatus("Step 1/2: Place finger firmly on AS608 sensor...","info");
+            await waitForFingerScan(15000);
+            const r1=await sendPacket(AS608_CMD.IMAGE_TO_TZ_1,12);
+            if(r1[9]!==0x00) throw new Error("Unclear fingerprint image. Try again.");
+            if(onStatus) onStatus("Lift finger for 1.5 seconds...","info");
+            await sleep(1500);
+            if(onStatus) onStatus("Step 2/2: Place the SAME finger again to confirm...","info");
+            await waitForFingerScan(15000);
+            const r2=await sendPacket(AS608_CMD.IMAGE_TO_TZ_2,12);
+            if(r2[9]!==0x00) throw new Error("Second scan unclear. Try again.");
+            const reg=await sendPacket(AS608_CMD.REG_MODEL,12);
+            if(reg[9]!==0x00) throw new Error("Fingerprints did not match. Use same finger.");
+            if(onStatus) onStatus("Extracting encrypted template...","info");
+            const tpl=await downloadTemplate();
+            isScanning=false;
+            return {ok:true, isMobile:false, credential:{credentialId:`as608_tpl_${tpl}`, kind:'as608_cloud'}};
+        }catch(err){ isScanning=false; return {ok:false, error:err.message||"Scan failed"}; }
+    },
+    async registerMobile(nationalId, fullName, onStatus){
+        if(!window.PublicKeyCredential) return {ok:false, error:"Mobile browser does not support biometrics."};
+        try{
+            if(onStatus) onStatus("Touch your phone's fingerprint sensor...","info");
+            const challenge=crypto.getRandomValues(new Uint8Array(32));
+            const userId=new TextEncoder().encode(String(nationalId));
+            const cred=await navigator.credentials.create({publicKey:{
+                challenge,
+                rp:{name:"bioSafe", id:window.location.hostname},
+                user:{id:userId, name:String(nationalId), displayName:fullName},
+                pubKeyCredParams:[{alg:-7,type:"public-key"},{alg:-257,type:"public-key"}],
+                authenticatorSelection:{authenticatorAttachment:"platform", userVerification:"required"},
+                timeout:60000
+            }});
+            const id=bytesToBase64(new Uint8Array(cred.rawId));
+            return {ok:true, isMobile:true, credential:{credentialId:id, kind:'webauthn_mobile'}};
+        }catch(err){ return {ok:false, error:err.message||"Mobile registration failed"}; }
+    },
+    async authenticate({role='doctor', onStatus}={}){
+        if(!("serial" in navigator)) return this.authenticateMobile(onStatus);
+        if(isScanning) return {ok:false, error:"A scan is already in progress."};
+        try{
+            await connectSensor(onStatus);
+            isScanning=true;
+            if(onStatus) onStatus("Place your finger on the AS608 sensor...","info");
+            await waitForFingerScan(15000);
+            const tz=await sendPacket(AS608_CMD.IMAGE_TO_TZ_1,12);
+            if(tz[9]!==0x00) throw new Error("Could not read fingerprint features. Try again.");
+            if(onStatus) onStatus("Matching against cloud database...","info");
+            const table=role==='doctor'?'doctors':'patients';
+            const {data:records, error}=await supabaseClient
+                .from(table).select('id,national_id,full_name,credential_id')
+                .not('credential_id','is',null);
+            if(error) throw new Error("Database error: "+error.message);
+            for(const rec of (records||[])){
+                if(!rec.credential_id || !rec.credential_id.startsWith('as608_tpl_')) continue;
+                const tpl=rec.credential_id.replace('as608_tpl_','');
+                const loaded=await uploadTemplateToSensor(tpl);
+                if(!loaded) continue;
+                const match=await sendPacket(AS608_CMD.MATCH,14,2000);
+                if(match[9]===0x00){
+                    const confidence=(match[10]<<8)|match[11];
+                    isScanning=false;
+                    return {ok:true, isMobile:false, confidence, credentialId:rec.credential_id};
+                }
+            }
+            isScanning=false;
+            return {ok:false, error:"Fingerprint not found in cloud database."};
+        }catch(err){ isScanning=false; return {ok:false, error:err.message||"Verification failed"}; }
+    },
+    async authenticateMobile(onStatus){
+        if(!window.PublicKeyCredential) return {ok:false, error:"Mobile browser does not support biometrics."};
+        try{
+            if(onStatus) onStatus("Verify with your phone's fingerprint...","info");
+            const challenge=crypto.getRandomValues(new Uint8Array(32));
+            const assertion=await navigator.credentials.get({publicKey:{
+                challenge, rpId:window.location.hostname,
+                userVerification:"required", timeout:60000
+            }});
+            const id=bytesToBase64(new Uint8Array(assertion.rawId));
+            return {ok:true, isMobile:true, credentialId:id};
+        }catch(err){ return {ok:false, error:err.message||"Mobile verification failed"}; }
+    }
+};
+
+/* ---------- Doctor Logic ---------- */
+let currentDoctor=null, currentPatient=null, pCredentialData=null;
+
+document.getElementById('loginForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const msg=document.getElementById('loginMsg');
+    const hash=await hashPassword(document.getElementById('password').value);
+    const {data, error}=await supabaseClient
+        .from('doctors').select('*')
+        .eq('national_id', document.getElementById('nationalId').value.trim())
+        .eq('password', hash).maybeSingle();
+    if(error){ msg.className='form-msg err'; msg.textContent='❌ '+error.message; return; }
+    if(!data){ msg.className='form-msg err'; msg.textContent='❌ Invalid National ID or password'; return; }
+    currentDoctor=mapDoctor(data);
+    showDashboard();
+});
+
+document.getElementById('bioLoginBtn').addEventListener('click', async()=>{
+    const msgEl=document.getElementById('bioLoginMsg');
+    const btn=document.getElementById('bioLoginBtn');
+    btn.disabled=true;
+    msgEl.textContent='Starting biometric verification...';
+    msgEl.style.color='var(--secondary)';
+    const verify=await BioAuth.authenticate({role:'doctor', onStatus:(m,t)=>{
+        msgEl.textContent=m;
+        msgEl.style.color=t==='error'?'#991b1b':'var(--secondary)';
+    }});
+    if(!verify.ok){
+        btn.disabled=false;
+        msgEl.textContent='❌ '+(verify.error||'Fingerprint not recognized');
+        msgEl.style.color='#991b1b';
+        return;
+    }
+    msgEl.textContent='Verified — loading doctor profile...';
+    const column=verify.isMobile?'mobile_credential_id':'credential_id';
+    const {data, error}=await supabaseClient
+        .from('doctors').select('*').eq(column, verify.credentialId).maybeSingle();
+    if(error || !data){
+        btn.disabled=false;
+        msgEl.textContent='❌ '+(error?error.message:'No account linked to this fingerprint');
+        msgEl.style.color='#991b1b';
+        return;
+    }
+    currentDoctor=mapDoctor(data);
+    showDashboard();
+});
+
+document.getElementById('linkMobileBtn').addEventListener('click', async()=>{
+    if(!currentDoctor) return;
+    const msgEl=document.getElementById('linkMobileMsg');
+    const reg=await BioAuth.registerMobile(currentDoctor.nationalId, currentDoctor.fullName, m=>{msgEl.textContent=m;});
+    if(!reg.ok){ msgEl.textContent='❌ '+reg.error; return; }
+    const {error}=await supabaseClient.from('doctors')
+        .update({mobile_credential_id:reg.credential.credentialId})
+        .eq('national_id', currentDoctor.nationalId);
+    msgEl.textContent=error?'❌ '+error.message:'✔ Phone fingerprint linked!';
+});
+
+function showDashboard(){
+    document.getElementById('loginView').style.display='none';
+    document.getElementById('dashboardView').classList.add('active');
+    document.getElementById('logoutBtn').style.display='inline-flex';
+    document.getElementById('docName').textContent=currentDoctor.fullName||'—';
+    document.getElementById('docSpec').textContent=currentDoctor.specialization||'—';
+    document.getElementById('docHospital').textContent=currentDoctor.hospital||'—';
+    document.getElementById('docId').textContent=currentDoctor.nationalId||'—';
+    loadDoctorRecords();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    });
+});
+
+/* ---------- Sub-tabs ---------- */
+document.querySelectorAll('.subtab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.subtab-panel').forEach(p=>p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('subtab-'+btn.dataset.subtab).classList.add('active');
+    });
+});
+
+document.getElementById('pScanBtn').addEventListener('click', async()=>{
+    const btn=document.getElementById('pScanBtn'), status=document.getElementById('pScanStatus');
+    btn.disabled=true;
+    status.textContent='Initializing biometric scanner...';
+    status.style.color='var(--secondary)';
+    try{
+        const result=await BioAuth.register({
+            nationalId: document.getElementById('pNationalId').value.trim()||'patient',
+            fullName: document.getElementById('pFullName').value.trim()||'bioSafe Patient',
+            onStatus:(m,t)=>{ status.textContent=m; status.style.color=t==='error'?'#991b1b':(t==='success'?'#166534':'var(--secondary)'); }
+        });
+        if(result.ok && result.credential){
+            pCredentialData={id:result.credential.credentialId, isMobile:result.isMobile};
+            btn.classList.add('scanned');
+            btn.innerHTML='<i class="fa-solid fa-check"></i> Fingerprint Scanned';
+            status.textContent=result.isMobile?'✔ Mobile fingerprint captured for Cloud DB':'✔ Encrypted AS608 template ready for Cloud DB';
+            status.style.color='#166534';
+        } else throw new Error(result.error||'Scan failed');
+    }catch(err){
+        btn.disabled=false;
+        status.textContent='❌ '+(err.message||'Scan failed — try again');
+        status.style.color='#991b1b';
+    }
+});
+
+function resetScan(){
+    const btn=document.getElementById('pScanBtn'), status=document.getElementById('pScanStatus');
+    btn.classList.remove('scanned'); btn.disabled=false;
+    btn.innerHTML='<i class="fa-solid fa-fingerprint"></i> Scan Fingerprint';
+    status.textContent='Not scanned'; status.style.color='var(--text-light)';
+    pCredentialData=null;
+}
+
+async function searchPatient(){
+    const id=document.getElementById('searchNationalId').value.trim();
+    if(!id){ alert('Please enter a National ID'); return; }
+    const {data, error}=await supabaseClient
+        .from('patients').select('*').eq('national_id', id).maybeSingle();
+    if(error || !data){
+        hidePatientSection();
+        alert('❌ '+(error?error.message:'Patient not found'));
+        return;
+    }
+    await displayPatient(data);
+}
+
+document.getElementById('pFingerSearchBtn').addEventListener('click', async()=>{
+    const btn=document.getElementById('pFingerSearchBtn');
+    const statusEl=document.getElementById('pFingerSearchStatus');
+    btn.disabled=true;
+    statusEl.textContent='Initializing biometric scanner...';
+    statusEl.style.color='var(--secondary)';
+    const verify=await BioAuth.authenticate({role:'patient', onStatus:(m,t)=>{
+        statusEl.textContent=m;
+        statusEl.style.color=t==='error'?'#991b1b':(t==='success'?'#166534':'var(--secondary)');
+    }});
+    if(!verify.ok){
+        btn.disabled=false;
+        statusEl.textContent='❌ '+(verify.error||'Fingerprint not recognized');
+        statusEl.style.color='#991b1b';
+        return;
+    }
+    statusEl.textContent='✔ Fingerprint matched — loading patient data...';
+    const column=verify.isMobile?'mobile_credential_id':'credential_id';
+    const {data, error}=await supabaseClient
+        .from('patients').select('*').eq(column, verify.credentialId).maybeSingle();
+    if(error || !data){
+        btn.disabled=false;
+        statusEl.textContent='❌ '+(error?error.message:'No patient linked to this fingerprint');
+        statusEl.style.color='#991b1b';
+        return;
+    }
+    statusEl.textContent='✔ Patient found!';
+    statusEl.style.color='#166534';
+    await displayPatient(data);
+    btn.disabled=false;
+});
+
+/* ---------- Display patient (بدون PIN) ---------- */
+async function displayPatient(data){
+    currentPatient = mapPatient(data);
+    document.getElementById('patientSection').style.display = 'block';
+    document.getElementById('psName').textContent = currentPatient.fullName || 'Patient';
+    document.getElementById('psId').textContent = 'ID: ' + (currentPatient.nationalId || '—');
+
+    // reset forms
+    document.getElementById('noteForm').reset();
+    document.getElementById('noteMsg').className='form-msg'; document.getElementById('noteMsg').textContent='';
+    document.getElementById('recordForm').reset();
+    document.getElementById('recordMsg').className='form-msg'; document.getElementById('recordMsg').textContent='';
+    
+    // reset history view
+    document.getElementById('viewHistoryPinGate').style.display='block';
+    document.getElementById('medicalHistoryArea').style.display='none';
+    document.getElementById('viewPinInput').value='';
+    document.getElementById('viewPinMsg').className='form-msg'; document.getElementById('viewPinMsg').textContent='';
+
+    // 1) Important Notes (ظاهرة دايماً)
+    await loadImportantNotes(currentPatient.nationalId);
+
+    // 2) Personal Info (ظاهرة دايماً)
+    renderPatientInfo(); 
+
+    // 3) Default subtab
+    document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.subtab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelector('.subtab-btn[data-subtab="notes-add"]').classList.add('active');
+    document.getElementById('subtab-notes-add').classList.add('active');
+
+    document.getElementById('patientSection').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function hidePatientSection(){
+    currentPatient=null;
+    document.getElementById('patientSection').style.display='none';
+}
+
+/* Personal Info renderer */
+function renderPatientInfo(){
+    const values = [
+        {label:'Full Name',     value:currentPatient.fullName},
+        {label:'National ID',   value:currentPatient.nationalId},
+        {label:'Blood Type',    value:currentPatient.bloodType},
+        {label:'Date of Birth', value:currentPatient.dateOfBirth},
+        {label:'Email',         value:currentPatient.email},
+        {label:'Phone',         value:currentPatient.phone},
+        {label:'Address',       value:currentPatient.address}
+    ];
+    document.getElementById('patientInfoRows').innerHTML = values.map(v=>`
+        <div class="info-row">
+            <span class="info-label">${v.label}</span>
+            <span class="info-value ${v.value?'':'muted'}">${v.value?escapeHtml(v.value):'—'}</span>
+        </div>`).join('');
+}
+
+/* ---------- Important notes ---------- */
+async function loadImportantNotes(patientNationalId){
+    const listEl = document.getElementById('importantNotesList');
+    listEl.innerHTML = '<div class="empty-hint">Loading notes...</div>';
+    const {data, error} = await supabaseClient
+        .from('important_notes')
+        .select('*')
+        .eq('patient_national_id', patientNationalId)
+        .order('created_at', {ascending:false});
+    if(error){
+        listEl.innerHTML = `<div class="empty-hint" style="color:#991b1b;">Could not load notes: ${escapeHtml(error.message)}</div>`;
+        return;
+    }
+    if(!data || !data.length){
+        listEl.innerHTML = '<div class="empty-hint">No important notes yet for this patient.</div>';
+        return;
+    }
+    listEl.innerHTML = data.map(n=>`
+        <div class="note-item">
+            <div class="note-text"><i class="fa-solid fa-triangle-exclamation" style="color:#b45309;margin-right:.4rem;"></i>${escapeHtml(n.note)}</div>
+            <div class="note-meta"><i class="fa-solid fa-user-doctor"></i>${escapeHtml(n.doctor_name||'Doctor')}${n.hospital?' · '+escapeHtml(n.hospital):''} · ${formatDate(n.created_at)}</div>
+        </div>`).join('');
+}
+
+/* ---------- View History PIN Gate (خاص بمشاهدة التقارير فقط) ---------- */
+document.getElementById('viewPinInput').addEventListener('input', (e)=>{
+    e.target.value = e.target.value.replace(/\D/g,'').slice(0,4);
+});
+document.getElementById('viewPinInput').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') document.getElementById('viewUnlockBtn').click();
+});
+
+document.getElementById('viewUnlockBtn').addEventListener('click', async ()=>{
+    const msg = document.getElementById('viewPinMsg');
+    const pin = document.getElementById('viewPinInput').value.trim();
+
+    if(!currentPatient) return;
+    if(!/^\d{4}$/.test(pin)){
+        msg.className='form-msg err';
+        msg.textContent='❌ Enter the patient 4-digit PIN';
+        return;
+    }
+
+    const {data, error} = await supabaseClient
+        .from('patients').select('view_pin')
+        .eq('national_id', currentPatient.nationalId).maybeSingle();
+
+    if(error){ msg.className='form-msg err'; msg.textContent='❌ '+error.message; return; }
+    if(!data || !data.view_pin){
+        msg.className='form-msg err';
+        msg.textContent='❌ This patient has not set a PIN yet.';
+        return;
+    }
+
+    const hashed = await hashPassword(pin);
+    if(hashed !== data.view_pin){
+        msg.className='form-msg err';
+        msg.textContent='❌ Incorrect PIN';
+        document.getElementById('viewPinInput').value='';
+        return;
+    }
+
+    msg.className='form-msg ok';
+    msg.textContent='✅ Unlocked';
+    await sleep(300);
+
+    document.getElementById('viewHistoryPinGate').style.display='none';
+    document.getElementById('medicalHistoryArea').style.display='block';
+
+    await loadPatientRecords(currentPatient.nationalId);
+});
+
+document.getElementById('lockHistoryBtn').addEventListener('click', ()=>{
+    document.getElementById('medicalHistoryArea').style.display='none';
+    document.getElementById('viewHistoryPinGate').style.display='block';
+    document.getElementById('viewPinInput').value='';
+    const m=document.getElementById('viewPinMsg');
+    m.className='form-msg'; m.textContent='';
+    document.getElementById('viewHistoryPinGate').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+/* ---------- Note & Record forms ---------- */
+document.getElementById('noteForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    if(!currentPatient || !currentDoctor) return;
+    const msg = document.getElementById('noteMsg');
+    const noteText = document.getElementById('noteText').value.trim();
+    if(!noteText){ msg.className='form-msg err'; msg.textContent='❌ Please enter a note'; return; }
+
+    const {error} = await supabaseClient.from('important_notes').insert({
+        patient_national_id: currentPatient.nationalId,
+        doctor_national_id:  currentDoctor.nationalId,
+        doctor_name:         currentDoctor.fullName,
+        hospital:            currentDoctor.hospital,
+        note:                noteText
+    });
+    if(error){ msg.className='form-msg err'; msg.textContent='❌ '+error.message; return; }
+    msg.className='form-msg ok'; msg.textContent='✅ Important note saved';
+    document.getElementById('noteForm').reset();
+    await loadImportantNotes(currentPatient.nationalId);
+    loadDoctorRecords();
+});
+
+document.getElementById('recordForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    if(!currentPatient) return;
+    const msg=document.getElementById('recordMsg');
+    const {error}=await supabaseClient.from('medical_records').insert({
+        patient_national_id: currentPatient.nationalId,
+        doctor_national_id:  currentDoctor.nationalId,
+        doctor_name:         currentDoctor.fullName,
+        hospital:            currentDoctor.hospital,
+        diagnosis:           document.getElementById('rDiagnosis').value.trim(),
+        treatment:           document.getElementById('rTreatment').value.trim()||null,
+        medications:         document.getElementById('rMedications').value.trim()||null,
+        notes:               document.getElementById('rNotes').value.trim()||null,
+        visit_date:          document.getElementById('rVisitDate').value||new Date().toISOString()
+    });
+    if(error){ msg.className='form-msg err'; msg.textContent='❌ '+error.message; return; }
+    msg.className='form-msg ok'; msg.textContent='✅ Record saved successfully';
+    e.target.reset();
+});
+
+async function loadPatientRecords(patientNationalId){
+    const div = document.getElementById('patientRecordsList');
+    div.innerHTML = '<p class="empty-hint">Loading...</p>';
+    const {data, error} = await supabaseClient
+        .from('medical_records').select('*')
+        .eq('patient_national_id', patientNationalId)
+        .order('visit_date',{ascending:false});
+    if(error){ div.innerHTML='<p style="color:#991b1b;">Could not load records.</p>'; return; }
+    if(!data || !data.length){ div.innerHTML='<p class="empty-hint">No medical records yet.</p>'; return; }
+    div.innerHTML = data.map(r=>`
+        <div class="record-card">
+            <div class="record-head">
+                <span class="diagnosis">${escapeHtml(r.diagnosis)}</span>
+                <span class="date">${formatDate(r.visit_date)}</span>
+            </div>
+            ${r.treatment?`<div class="field"><strong>Treatment:</strong> ${escapeHtml(r.treatment)}</div>`:''}
+            ${r.medications?`<div class="field"><strong>Medications:</strong> ${escapeHtml(r.medications)}</div>`:''}
+            ${r.notes?`<div class="field"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>`:''}
+            <div class="field" style="font-size:.8rem;color:var(--text-light);"><i class="fa-solid fa-user-doctor"></i> ${escapeHtml(r.doctor_name||'Doctor')}${r.hospital?' — '+escapeHtml(r.hospital):''}</div>
+        </div>`).join('');
+}
+
+/* ---------- New patient ---------- */
+document.getElementById('newPatientForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const msg=document.getElementById('patientMsg');
+    if(!pCredentialData){ msg.className='form-msg err'; msg.textContent="❌ Please scan the patient's fingerprint first"; return; }
+    const nationalId=document.getElementById('pNationalId').value.trim();
+    const {data:dup}=await supabaseClient.from('patients').select('id').eq('national_id',nationalId).maybeSingle();
+    if(dup){ msg.className='form-msg err'; msg.textContent='❌ A patient with this National ID already exists'; return; }
+    const insertData={
+        national_id:nationalId,
+        password:await hashPassword(document.getElementById('pPassword').value),
+        full_name:document.getElementById('pFullName').value.trim(),
+        email:document.getElementById('pEmail').value.trim()||null,
+        phone:document.getElementById('pPhone').value.trim()||null,
+        blood_type:document.getElementById('pBloodType').value||null,
+        date_of_birth:document.getElementById('pDOB').value||null,
+        address:document.getElementById('pAddress').value.trim()||null
+    };
+    if(pCredentialData.isMobile) insertData.mobile_credential_id=pCredentialData.id;
+    else insertData.credential_id=pCredentialData.id;
+    const {error}=await supabaseClient.from('patients').insert(insertData);
+    if(error){ msg.className='form-msg err'; msg.textContent='❌ '+error.message; return; }
+    msg.className='form-msg ok'; msg.textContent='✅ Patient added successfully';
+    e.target.reset(); resetScan();
+});
+
+/* ---------- Doctor's own records & notes ---------- */
+async function loadDoctorRecords(){
+    const div=document.getElementById('doctorRecords');
+    const [recRes, noteRes] = await Promise.all([
+        supabaseClient.from('medical_records').select('*')
+            .eq('doctor_national_id', currentDoctor.nationalId)
+            .order('visit_date',{ascending:false}),
+        supabaseClient.from('important_notes').select('*')
+            .eq('doctor_national_id', currentDoctor.nationalId)
+            .order('created_at',{ascending:false})
+    ]);
+
+    const records = recRes.data || [];
+    const notes = noteRes.data || [];
+
+    if(!records.length && !notes.length){
+        div.innerHTML='<p style="color:var(--text-light);">No records or notes created yet.</p>';
+        return;
+    }
+
+    const noteCards = notes.map(n=>`
+        <div class="record-card" style="border-left-color:#f59e0b;">
+            <div class="record-head">
+                <span class="diagnosis" style="color:#92400e;"><i class="fa-solid fa-triangle-exclamation"></i> Important Note — ${escapeHtml(n.patient_national_id)}</span>
+                <span class="date">${formatDate(n.created_at)}</span>
+            </div>
+            <div class="field">${escapeHtml(n.note)}</div>
+        </div>`).join('');
+
+    const recordCards = records.map(r=>`
+        <div class="record-card">
+            <div class="record-head">
+                <span class="diagnosis">Patient: ${escapeHtml(r.patient_national_id)} — ${escapeHtml(r.diagnosis)}</span>
+                <span class="date">${formatDate(r.visit_date)}</span>
+            </div>
+            ${r.treatment?`<div class="field"><strong>Treatment:</strong> ${escapeHtml(r.treatment)}</div>`:''}
+            ${r.medications?`<div class="field"><strong>Medications:</strong> ${escapeHtml(r.medications)}</div>`:''}
+            ${r.notes?`<div class="field"><strong>Notes:</strong> ${escapeHtml(r.notes)}</div>`:''}
+        </div>`).join('');
+
+    div.innerHTML = noteCards + recordCards;
+}
+
+/* ---------- Helpers ---------- */
+function mapPatient(p){ return {nationalId:p.national_id, fullName:p.full_name, email:p.email, phone:p.phone, bloodType:p.blood_type, dateOfBirth:p.date_of_birth, address:p.address}; }
+function mapDoctor(d){ return {nationalId:d.national_id, fullName:d.full_name, specialization:d.specialization, hospital:d.hospital, email:d.email}; }
+function formatDate(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function logout(){ location.reload(); }
+</script>
+</body>
+</html>
